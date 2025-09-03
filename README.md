@@ -19,23 +19,50 @@ This creates tight coupling between your application and specific providers, mak
 
 ## Architecture Overview
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   LLMClient     │───▶│  LLMProvider     │◀───│ ProviderFactory │
-│ (Application)   │    │  (Interface)     │    │                 │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                               ▲                         │
-                               │                         │
-                    ┌──────────┴──────────┐              │
-                    │                     │              │
-            ┌───────▼────────┐    ┌──────▼──────────┐    │
-            │ OpenAIAdapter  │    │  OllamaAdapter  │◀───┘
-            │   (Adapter)    │    │   (Adapter)     │
-            └────────────────┘    └─────────────────┘
-                    │                      │
-            ┌───────▼────────┐    ┌──────▼──────────┐
-            │  OpenAI API    │    │   Ollama API    │
-            └────────────────┘    └─────────────────┘
+```mermaid
+classDiagram
+    class LLMClient {
+        -provider: LLMProvider
+        +chat(message: string): string
+    }
+    
+    class LLMProvider {
+        <<interface>>
+        +generateResponse(messages: List~Message~, model: string): LLMResponse
+    }
+    
+    class ProviderFactory {
+        <<factory>>
+        +createProvider(type: ProviderType, config: dict): LLMProvider
+    }
+    
+    class OpenAIAdapter {
+        -apiKey: string
+        +generateResponse(messages: List~Message~, model: string): LLMResponse
+    }
+    
+    class OllamaAdapter {
+        -baseUrl: string
+        +generateResponse(messages: List~Message~, model: string): LLMResponse
+    }
+    
+    class OpenAIAPI {
+        <<external>>
+    }
+    
+    class OllamaAPI {
+        <<external>>
+    }
+    
+    LLMClient --> LLMProvider : uses
+    ProviderFactory ..> LLMProvider : creates
+    OpenAIAdapter ..|> LLMProvider : implements
+    OllamaAdapter ..|> LLMProvider : implements
+    ProviderFactory --> OpenAIAdapter : creates
+    ProviderFactory --> OllamaAdapter : creates
+    OpenAIAdapter --> OpenAIAPI : calls
+    OllamaAdapter --> OllamaAPI : calls
+
 ```
 
 ## Design Patterns Used
